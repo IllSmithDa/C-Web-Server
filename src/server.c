@@ -23,7 +23,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
+// #include <winsock2.h>
+#include <netinet/in.h> 
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
@@ -187,7 +188,31 @@ int get_listener_socket(char *port)
  */
 int send_response(int fd, char *header, char *content_type, char *body)
 {
-  // !!!! IMPLEMENT ME
+  const int max_response_size = 65536;
+  char response[max_response_size];
+  int response_length;
+  int body_length = strlen(body); // length of string 'body'  
+
+  // !!!!  IMPLEMENT ME
+  // sprintf prints to a string, snprintf sets maximum size in bytes 
+  response_length = snprintf(response, max_response_size, "%s\n" // response is string we wan to print into 
+    "Connection: close\n"               //keeps maximum size underneath 65 kilobytes
+    "Content-Length: %d\n"
+    "Content-Typed: %s\n"
+    "\n"
+    "%s",
+
+    header, body_length, content_type, body 
+    );
+
+  // Send it all!
+  int rv = send(fd, response, response_length, 0);
+
+  if (rv < 0) {
+    perror("send");
+  }
+
+  return rv;
 }
 
 
@@ -209,7 +234,8 @@ void resp_404(int fd, char *path)
 void get_root(int fd)
 {
   // !!!! IMPLEMENT ME
-  //send_response(...
+  send_response(fd, "HTTP/1.1 200 OK", "texthtml",
+  "<!DOCTYPE html><html><head><title>Lambda School</title></head><body><h1>Hello World!</h1></body></html>");
 }
 
 /**
@@ -276,6 +302,19 @@ void handle_http_request(int fd)
   // Get the request type and path from the first line
   // find_end_of_header()
   // call the appropriate handler functions, above, with the incoming data
+  printf("%s\n", request);
+  scanf(request, "%s %s %s", request_type, request_path, request_protocol);
+  printf("%s %s %s", request_type, request_path, request_protocol);
+  char response_body[1024];
+  
+  if (strcmp(request_path, "/") == 0) { // strict comparison do not work for pointers 
+                                         // use 'strcomp' instead 
+    // takes a parameter 
+    get_root(fd); // get root refers to the socket. 
+  }
+
+    send_response(fd, "HTTP/1.1 200 OK", "text/html",
+   "<!DOCTYPE html><html><head><title>Lambda School</title></head><body><h1>Hello World!</h1></body></html>");
 }
 
 /**
@@ -337,4 +376,3 @@ int main(void)
 
   return 0;
 }
-
